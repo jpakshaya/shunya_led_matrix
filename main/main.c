@@ -6,7 +6,8 @@
 #include "esp_log.h"
 #include <string.h>
 #include "led_strip.h"
-#include "driver/rmt.h"
+#include "driver/rmt_tx.h"
+#include "driver/rmt_rx.h"
 
 #include "MAP_LED.h"
 
@@ -22,8 +23,8 @@
 //LED
 #define RMT_LED_STRIP_CHANNEL RMT_CHANNEL_0
 #define RMT_GPIO 18
-#define MATRIX_WIDTH 16
-#define MATRIX_HEIGHT 16
+#define MATRIX_WIDTH 8
+#define MATRIX_HEIGHT 8
 #define LED_COUNT (MATRIX_WIDTH * MATRIX_HEIGHT)
 
 
@@ -94,8 +95,8 @@ void app_main(void)
     led_strip_rmt_config_t rmt_config = {
         .clk_src = RMT_CLK_SRC_DEFAULT,
         .resolution_hz = 10 * 1000 * 1000, // 0.1 microsecond
-        .mem_block_symbols = 64,   //can send msg to 2 LEDs at a time (24*2=48 bits)
-        .trans_queue_depth = 4,
+        //.mem_block_symbols = 64,   //can send msg to 2 LEDs at a time (24*2=48 bits)
+        //.trans_queue_depth = 4,    //THIS IS NOT AVALIABLE IN OLDER VERSION OF ESP, CHECK ONCE
         .flags.with_dma = false,    //dont use direct memory access (keep it simple for cpu)
     };
 
@@ -116,10 +117,10 @@ void app_main(void)
             for (int x = 0; x < MATRIX_WIDTH; x++) {
                 int index = y * MATRIX_WIDTH + x;
 
-                if (y < 7) {
+                if (y < 3) {
                     // Top 7 rows = part 1
                     MAP_LED(index, data2[i], frame, 1);
-                } else if (y > 8) {
+                } else if (y > 4) {
                     // Bottom 7 rows = part 2
                     MAP_LED(index, data2[i], frame, 2);
                 }
@@ -127,9 +128,12 @@ void app_main(void)
         }
 
         led_strip_refresh(led_strip);  // Show frame
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay between frames
-        MAP_COLOR_TO_LED_MATRIX(2);   //The whole matrix is white
         vTaskDelay(pdMS_TO_TICKS(1000));
+
+
+        led_strip_clear(led_strip);
+        led_strip_refresh(led_strip);
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Delay between frames
     }
 }
 
